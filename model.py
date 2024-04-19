@@ -4,18 +4,22 @@ import torch.nn as nn
 
 N = 16
 
-def build_model_feature(pretrained=True, fine_tune=True,):
+
+def build_model_feature(
+    pretrained=True,
+    fine_tune=True,
+):
     if pretrained:
-        print('[INFO]: Loading pre-trained weights')
+        print("[INFO]: Loading pre-trained weights")
     else:
-        print('[INFO]: Not loading pre-trained weights')
+        print("[INFO]: Not loading pre-trained weights")
     model = models.efficientnet_b6()
     if fine_tune:
-        print('[INFO]: Fine-tuning all layers...')
+        print("[INFO]: Fine-tuning all layers...")
         for params in model.parameters():
             params.requires_grad = True
     elif not fine_tune:
-        print('[INFO]: Freezing hidden layers...')
+        print("[INFO]: Freezing hidden layers...")
         for params in model.parameters():
             params.requires_grad = False
     # Change the final classification head.
@@ -32,7 +36,7 @@ class efficienet_pool(nn.Module):
         self.num_classes = num_classes
         self.fc = nn.Linear(1280, num_classes)
         self.feature_layer = None
-        
+
     def forward(self, x):
         x = self.model(x)
         # group by 16 and take the mean
@@ -40,15 +44,16 @@ class efficienet_pool(nn.Module):
         x = torch.mean(x, dim=1)
         # add classifier
         self.feature_layer = x
-        x = self.fc(x) #TODO
+        x = self.fc(x)  # TODO
         return x
+
 
 class ensemble(nn.Module):
     def __init__(self, num_classes, model1, model2):
         super(ensemble, self).__init__()
         self.model1 = model1
         self.model2 = model2
-        self.fc = nn.Linear(3*num_classes, num_classes)
+        self.fc = nn.Linear(3 * num_classes, num_classes)
 
     def forward(self, x):
         self.model1(x)
