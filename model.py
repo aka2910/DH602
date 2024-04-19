@@ -1,6 +1,7 @@
 import torch
 import torchvision.models as models
 import torch.nn as nn
+from torchvision.models import EfficientNet_B6_Weights
 
 N = 16
 FEATURE_SIZE = 2304
@@ -14,7 +15,7 @@ def build_model_feature(
         print("[INFO]: Loading pre-trained weights")
     else:
         print("[INFO]: Not loading pre-trained weights")
-    model = models.efficientnet_b6()
+    model = models.efficientnet_b6(weights=EfficientNet_B6_Weights.DEFAULT)
     if fine_tune:
         print("[INFO]: Fine-tuning all layers...")
         for params in model.parameters():
@@ -45,7 +46,14 @@ class efficienet_pool(nn.Module):
         x = torch.mean(x, dim=1)
         # add classifier
         self.feature_layer = x
-        x = self.fc(x)  # TODO
+        x = self.fc(x)
+        return x
+    
+    def forward_infer(self, x):
+        x = self.model(x)
+        # group by 16 and take the mean
+        x = x.view(-1, N, x.size(1))
+        x = torch.mean(x, dim=1)
         return x
 
 
@@ -57,10 +65,8 @@ class ensemble(nn.Module):
         self.fc = nn.Linear(FEATURE_SIZE * 2, num_classes)
 
     def forward(self, x):
-        self.model1(x)
-        self.model2(x)
-        x1 = self.model1.feature_layer
-        x2 = self.model2.feature_layer
+        x1 = self.model1.forward_infer(x)
+        x2 = self.model2.forward_infer(x)
         x = torch.cat((x1, x2), dim=1)
         x = self.fc(x)
         return x

@@ -5,6 +5,8 @@ import skimage.io
 from tqdm.auto import tqdm
 import pickle
 from model import efficienet_pool, ensemble
+import torch
+import random
 
 
 sz = 256
