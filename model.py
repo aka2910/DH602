@@ -34,7 +34,7 @@ class efficienet_pool(nn.Module):
         super(efficienet_pool, self).__init__()
         self.model = build_model_feature()
         self.num_classes = num_classes
-        self.fc = nn.Linear(1280, num_classes)
+        self.fc = nn.Linear(2304, num_classes)
         self.feature_layer = None
 
     def forward(self, x):
