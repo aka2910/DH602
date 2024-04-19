@@ -3,6 +3,7 @@ import torchvision.models as models
 import torch.nn as nn
 
 N = 16
+FEATURE_SIZE = 2304
 
 
 def build_model_feature(
@@ -34,7 +35,7 @@ class efficienet_pool(nn.Module):
         super(efficienet_pool, self).__init__()
         self.model = build_model_feature()
         self.num_classes = num_classes
-        self.fc = nn.Linear(2304, num_classes)
+        self.fc = nn.Linear(FEATURE_SIZE, num_classes)
         self.feature_layer = None
 
     def forward(self, x):
@@ -53,7 +54,7 @@ class ensemble(nn.Module):
         super(ensemble, self).__init__()
         self.model1 = model1
         self.model2 = model2
-        self.fc = nn.Linear(3 * num_classes, num_classes)
+        self.fc = nn.Linear(FEATURE_SIZE * 2, num_classes)
 
     def forward(self, x):
         self.model1(x)
@@ -63,3 +64,9 @@ class ensemble(nn.Module):
         x = torch.cat((x1, x2), dim=1)
         x = self.fc(x)
         return x
+
+
+if __name__ == "__main__":
+    model1 = efficienet_pool(3)
+    model2 = efficienet_pool(6)
+    model = ensemble(6,model1,model2)
