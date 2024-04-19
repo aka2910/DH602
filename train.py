@@ -1,19 +1,16 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
 import time
-import torch.nn.functional as F
-from tqdm.auto import tqdm
+import torch
 import random
-from typing import Optional
 import pickle
+import torch.nn as nn
+from tqdm.auto import tqdm
+from typing import Optional
+import torch.optim as optim
+import torch.nn.functional as F
 from model import efficienet_pool, ensemble
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-lr = 1e-5
-epochs = 15
-
 
 def train(model, images, optimizer, criterion):
     model.train()
@@ -45,7 +42,7 @@ def train(model, images, optimizer, criterion):
     return epoch_loss, epoch_acc
 
 
-def train_efficient(images, num_classes):
+def train_efficient(images, num_classes, epochs=15, lr=1e-5):
     model = efficienet_pool(num_classes=num_classes)
     # Optimizer.
     optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -122,7 +119,7 @@ class QuadraticKappaLoss(nn.Module):
         return self.kappa_loss(y_pred, y_true)
 
 
-def train_ensemble(images):
+def train_ensemble(images, epochs=15, lr=1e-5):
     model1 = torch.load("model1.pth")
     model1.load(model1["state_dict"])
 
@@ -135,7 +132,7 @@ def train_ensemble(images):
     for params in model2.parameters():
         params.requires_grad = False
 
-    model = ensemble(6)
+    model = ensemble(6, model1, model2)
     # Optimizer.
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
@@ -160,12 +157,23 @@ def train_ensemble(images):
         )
     return model
 
+def main():
+    num_classes = 6
+
+    images_radbound = pickle.load(open("images_radbound.obj", "rb"))
+    model_radbound = train_efficient(images_radbound, num_classes)
+    print("Training radbound completed.")
+    torch.save(model_radbound, "model_radbound.pth")
+
+    images_karolinska = pickle.load(open("images_karolinska.obj", "rb"))
+    model_karolinska = train_efficient(images_karolinska, num_classes)
+    print("Training karolinska completed.")
+    torch.save(model_karolinska, "model_karolinska.pth")
+
+    images = torch.cat((images_radbound, images_karolinska), dim=0)
+    model = train_ensemble(images)
+    print("Training Ensemble completed.")
+    torch.save(model, "ensemble.pth")
 
 if __name__ == "__main__":
-    images = pickle.load(open("images.obj", "rb"))
-    num_classes = 6
-    model = train_efficient(images, num_classes)
-    torch.save(model, "model.pth")
-    model = train_ensemble(images)
-    torch.save(model, "ensemble.pth")
-    print("Training completed.")
+    main()
